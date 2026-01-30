@@ -1,0 +1,176 @@
+# ==========================================
+# Metalens FNO Project Configuration
+# ==========================================
+
+# ==========================================
+# General Settings
+# ==========================================
+general:
+  seed: 42
+  # Device: "cuda", "mps" (Mac), "cpu", or "auto" (자동 감지)
+  device: "auto"
+  num_workers: 2
+
+# ==========================================
+# Data Settings
+# ==========================================
+data:
+  path: "/home/work/KDD/data/validation/new_samples/w5p0um/samples"  # 데이터 경로
+  Ny: 20  # Y dimension for 2D reshape
+  scale_factor: 100.0  # 1000 -> 100 (노이즈 억제)
+  train_ratio: 0
+  max_stat_samples: 500  # 통계 계산용 샘플 수
+  
+  # 데이터 수 제한 (null이면 전체 데이터 사용)
+  max_samples: null  # 예: 1000, 5000, null
+
+# ==========================================
+# Training Settings
+# ==========================================
+training:
+  batch_size: 64
+  epochs: 50
+  learning_rate: 0.001
+  weight_decay: 0.01  # 규제 강화
+  min_epoch_for_save: 10  # 이 epoch 이후부터 모델 저장
+  log_interval: 10  # 로그 출력 간격 (epoch)
+  
+  # Loss function: "mse(default)" or "l1" or "sign_combo"
+  loss: "mse"
+
+
+  sign_loss:
+    percentile: 98        # s = percentile(|g|, 98)
+    topk_percent: 10      # M = 상위 10% (|g| 큰 픽셀)
+    alpha: 10             # BCE logits scale (5~20)
+    lambda_sign: 1.0
+    lambda_cos: 0.5
+    lambda_mag: 0.2
+    mag_type: "huber"     # huber or charbonnier
+    beta_critical: 10     # critical 가중치: w = 1 + beta*M
+    tv_weight: 0.00005    # 1e-5 ~ 1e-4
+    edge_drop: 6          # patch 경계(양끝) 6픽셀 다운가중
+    edge_weight: 0.3      # 경계 가중치
+    eps: 0.000001
+
+# ==========================================
+# Model Settings
+# ==========================================
+model:
+  # Model type: "fno", "linear", "unet", "specboost"
+  type: "fno"
+  
+  # Dimension: "1d" or "2d"
+  dim: "1d"
+
+  # ----- FNO (RobustFNO) Settings -----
+  fno:
+    # 1D settings
+    1d:
+      modes: 26
+      width: 32
+      input_channels: 3  # geometry, grid, edge_map, phase,  
+    # 2D settings
+    2d:
+      in_dim: 4  # geometry, Y grid, X grid, edge_map
+      modes1: 12  # 50
+      modes2: 6 # 60
+      width: 48
+      dropout_p: 0.2
+
+  # ----- Linear Model Settings -----
+  linear:
+    input_dim: 150  # 실제 Nx에 맞춰 조정 필요
+    dim: 32
+    layer_num: 4
+    dropout: 0.6
+    residual: false
+    bn: true
+
+  # ----- UNet Settings -----
+  unet:
+    # 1D settings
+    1d:
+      dim: 16
+      input_channels: 3
+    # 2D settings
+    2d:
+      in_dim: 4
+      base_dim: 48
+
+  # ----- SpecBoost Settings -----
+  specboost:
+    # 1D settings
+    1d:
+      indim: 3  # stage 0 input
+      indim_stage1: 4  # stage 1 input (stage0 output 포함)
+      dim: 64
+      mode: 26
+      layer_num: 4
+    # 2D settings
+    2d:
+      indim: 4  # stage 0 input
+      indim_stage1: 5  # stage 1 input (stage0 output 포함)
+      dim: 64
+      modes1: 12
+      modes2: 6
+      layer_num: 4
+
+# ==========================================
+# SpecBoost Specific Settings
+# ==========================================
+specboost_training:
+  # Stage 0 settings
+  stage0:
+    epochs: 30
+    learning_rate: 0.001
+    weight_decay: 0.0001
+    log_interval: 20
+  
+  # Stage 1 settings
+  stage1:
+    epochs: 30
+    learning_rate: 0.001
+    weight_decay: 0.0001
+    log_interval: 10
+    # Early stopping
+    patience: 20
+    use_early_stopping: false
+  
+  # Loss function: "mse" or "l1"
+  loss: "l1"
+
+# ==========================================
+# Output Settings
+# ==========================================
+output:
+  # 체크포인트 저장 디렉토리 (모델별로 하위 폴더 생성됨)
+  checkpoint_dir: "./checkpoints"
+  
+  # 결과 저장 디렉토리
+  result_dir: "./checkpoints/results"
+  
+  # 파일 접미사
+  best_model_suffix: "_best.pth"
+  final_model_suffix: "_final.pth"
+  
+  # 시각화 설정
+  plot_results: true
+  save_plots: true
+  
+  # Top-K 결과 저장
+  top_k_samples: 20
+
+# ==========================================
+# Visualization Settings
+# ==========================================
+visualization:
+  # 저장할 샘플 수
+  num_samples: 20
+  
+  # DPI 설정
+  dpi: 150
+  
+  # Figure size
+  figsize_1d: [12, 4]
+  figsize_2d: [16, 4]
